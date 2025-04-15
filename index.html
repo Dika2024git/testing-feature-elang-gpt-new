@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifikasi Super Cerdas (v3)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 25px; background-color: #f8f9fa; color: #212529; line-height: 1.6; }
+        h1, h2 { color: #0056b3; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-bottom: 20px; }
+        h2 { font-size: 1.3em; border-bottom: none; }
+        .container { max-width: 800px; margin: auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        button {
+            padding: 10px 18px; font-size: 15px; cursor: pointer;
+            background-color: #007bff; color: white; border: none;
+            border-radius: 5px; transition: background-color 0.3s ease; margin: 5px 0;
+        }
+        button:disabled { background-color: #adb5bd; cursor: not-allowed; }
+        button:hover:not(:disabled) { background-color: #0056b3; }
+        button.secondary { background-color: #6c757d; }
+        button.secondary:hover:not(:disabled) { background-color: #5a6268; }
+        .status-box, .info-box, .control-panel, .log-panel {
+            margin-top: 20px; padding: 15px; border-left: 5px solid #007bff;
+            background-color: #e7f3ff; border-radius: 4px; font-size: 0.95em;
+        }
+        .status-box.denied { border-left-color: #dc3545; background-color: #f8d7da;}
+        .status-box.granted { border-left-color: #28a745; background-color: #d4edda;}
+        .control-panel label, .log-panel label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .control-panel select, .control-panel input[type="checkbox"] { margin-left: 10px; vertical-align: middle; }
+        .control-panel fieldset { border: 1px solid #ccc; border-radius: 5px; padding: 15px; margin-top: 15px; }
+        .control-panel legend { font-weight: bold; color: #0056b3; padding: 0 5px; }
+        .log-panel { border-left-color: #6c757d; background-color: #f1f3f5; }
+        .log-panel ul { list-style: none; padding-left: 0; max-height: 150px; overflow-y: auto; }
+        .log-panel li { padding: 5px 0; border-bottom: 1px dashed #ccc; font-size: 0.9em; }
+        .log-panel li:last-child { border-bottom: none; }
+        .log-panel li .log-time { color: #6c757d; font-size: 0.85em; margin-right: 8px;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Notifikasi Super Cerdas 🧠 (v3)</h1>
+    <p>Nikmati notifikasi yang lebih relevan, terkontrol, dan tidak mengganggu. Kini dengan konten berbasis waktu dan log histori.</p>
+
+    <button id="allowButton">Izinkan Notifikasi</button>
+    <button id="pauseResumeButton" class="secondary" style="display: none;">Jeda Notifikasi</button>
+
+    <div id="status" class="status-box">Status izin: Belum Diperiksa.</div>
+
+    <div class="control-panel" id="controls" style="display: none;">
+        <fieldset>
+            <legend>Kontrol Notifikasi</legend>
+            <div>
+                <label for="frequencySelect">Frekuensi:</label>
+                <select id="frequencySelect">
+                    <option value="medium" selected>Sedang (± 10 - 20 menit)</option>
+                    <option value="low">Jarang (± 20 - 30 menit)</option>
+                    <option value="high">Sering (± 1 - 5 menit)</option>
+                </select>
+            </div>
+            <div>
+                <label for="inactiveOnlyCheckbox">
+                    <input type="checkbox" id="inactiveOnlyCheckbox" checked> Hanya Tampilkan Saat Tab Tidak Aktif
+                </label>
+                <small style="display:block; margin-left: 28px; color: #6c757d;">Mencegah gangguan saat Anda sedang melihat halaman ini.</small>
+            </div>
+        </fieldset>
+    </div>
+
+    <div id="lastNotification" class="info-box" style="display: none;">Notifikasi terakhir: -</div>
+    <div id="nextNotificationInfo" class="info-box" style="display: none;">Status: Menunggu...</div>
+
+    <div class="log-panel" id="logPanel" style="display: none;">
+        <h2><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clock-history" viewBox="0 0 16 16" style="vertical-align: -2px; margin-right: 5px;"><path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.798a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.184-.29.346-.591l.866.518a8 8 0 0 1-.494.913l-.832-.54q.14-.21.27-.429m-.964 1.205q.18-.183.346-.375l.789.615a8 8 0 0 1-.62 1.032l-.733-.68q.14-.15.276-.323m-1.073.283q.17-.155.329-.317l.757.653a8 8 0 0 1-.709.99l-.663-.76q.132-.129.27-.28zM8 1a7 7 0 1 0 4.95 11.95A7 7 0 0 0 8 1m-.004 14a8 8 0 1 1 0-16 8 8 0 0 1 0 16M6.5 7.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zM8 3.5a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5"/></svg> Histori Notifikasi (Terbaru)</h2>
+        <ul id="logList">
+            <li>Belum ada notifikasi.</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    // --- Elemen UI ---
+    const allowButton = document.getElementById('allowButton');
+    const pauseResumeButton = document.getElementById('pauseResumeButton');
+    const statusDiv = document.getElementById('status');
+    const controlsDiv = document.getElementById('controls');
+    const frequencySelect = document.getElementById('frequencySelect');
+    const inactiveOnlyCheckbox = document.getElementById('inactiveOnlyCheckbox');
+    const lastNotificationDiv = document.getElementById('lastNotification');
+    const nextNotificationInfoDiv = document.getElementById('nextNotificationInfo');
+    const logPanel = document.getElementById('logPanel');
+    const logList = document.getElementById('logList');
+
+    // --- State Aplikasi ---
+    let notificationTimeoutId = null;
+    let isPaused = false;
+    let currentPermission = 'default';
+    let notificationLog = []; // Menyimpan log notifikasi
+    const MAX_LOG_ENTRIES = 7; // Maksimal entri log yang ditampilkan
+    let lastNotificationTimestamp = 0; // Timestamp notifikasi terakhir
+    const NOTIFICATION_COOLDOWN = 45 * 1000; // Jeda minimal 45 detik antar notifikasi
+
+    // --- Pengaturan Frekuensi (min, max dalam ms) ---
+    const frequencySettings = {
+        low: { min: 1200000, max: 1800000 }, // 20-30 menit
+        medium: { min: 600000, max: 1200000 }, // 10-20 menit
+        high: { min: 60000, max: 300000 }    // 1-5 menit
+    };
+
+    // --- Placeholder Dinamis ---
+    const randomFeatures = ["Analitik Cerdas", "Mode Gelap Otomatis", "Sinkronisasi Cloud", "Editor WYSIWYG", "Filter Lanjutan"];
+    const randomTips = ["gunakan shortcut keyboard", "atur pengingat", "bersihkan cache secara berkala", "manfaatkan template", "aktifkan autentikasi 2 faktor"];
+    const randomEvents = ["Webinar Eksklusif", "Sesi Tanya Jawab", "Update Sistem", "Peluncuran Produk Beta", "Kontes Komunitas"];
+    const randomBonuses = ["voucher diskon 10%", "akses premium 3 hari", "poin loyalitas ganda", "e-book gratis", "konsultasi singkat"];
+
+    const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+    // --- Konten Notifikasi (dengan tipe & placeholder dinamis) ---
+    const contentVariations = [
+        { type: 'promo', title: "❗ Promo Spesial!", body: () => `Jangan lewatkan penawaran spesial untuk ${getRandomElement(randomFeatures)}.`, icon: 'https://img.icons8.com/fluent/48/000000/error.png', badge: 'https://img.icons8.com/ios-glyphs/30/000000/alarm.png', image: 'https://via.placeholder.com/300x150/FF6347/FFFFFF?text=PROMO' },
+        { type: 'update', title: "✨ Update Tersedia!", body: () => `Fitur ${getRandomElement(randomFeatures)} baru saja ditingkatkan!`, icon: 'https://img.icons8.com/fluent/48/000000/new.png', badge: 'https://img.icons8.com/ios-glyphs/30/000000/star.png', image: 'https://via.placeholder.com/300x150/32CD32/000000?text=UPDATE', actions: [{ action: 'explore', title: 'Lihat Detail' }] },
+        { type: 'tip', title: "💡 Tips Produktivitas", body: () => `Tahukah Anda? Coba ${getRandomElement(randomTips)}.`, icon: 'https://img.icons8.com/fluent/48/000000/lightbulb-idea.png', badge: 'https://img.icons8.com/ios-glyphs/30/000000/lightbulb.png' },
+        { type: 'event', title: "🔔 Pengingat Acara", body: () => `Jangan lupa, acara '${getRandomElement(randomEvents)}' akan dimulai sebentar lagi!`, icon: 'https://img.icons8.com/fluent/48/000000/calendar.png', badge: 'https://img.icons8.com/ios-glyphs/30/000000/bell.png', actions: [{ action: 'view_details', title: 'Lihat Info'}] },
+        { type: 'reward', title: "🚀 Kabar Gembira!", body: () => `Selamat! Anda baru saja mendapatkan ${getRandomElement(randomBonuses)}!`, icon: 'https://img.icons8.com/fluent/48/000000/confetti.png', badge: 'https://img.icons8.com/ios-glyphs/30/000000/gift.png', image: 'https://via.placeholder.com/300x150/1E90FF/FFFFFF?text=BONUS' },
+        // --- Konten Spesifik Waktu ---
+        { type: 'morning_greeting', timeOfDay: 'morning', title: "☀️ Selamat Pagi!", body: "Semoga harimu produktif! Awali dengan cek tugas penting.", icon: 'https://img.icons8.com/fluent/48/000000/sun.png', badge: 'https://img.icons8.com/ios-glyphs/30/000000/sunrise.png'},
+        { type: 'afternoon_check', timeOfDay: 'afternoon', title: "☕ Waktunya Rehat Sejenak?", body: "Jangan lupa istirahat singkat untuk menyegarkan pikiran.", icon: 'https://img.icons8.com/fluent/48/000000/coffee-to-go.png', badge: 'https://img.icons8.com/ios-glyphs/30/000000/clock.png'},
+        { type: 'evening_relax', timeOfDay: 'evening', title: "🌙 Waktunya Bersantai", body: "Sudah waktunya mengakhiri aktivitas. Siapkan diri untuk beristirahat.", icon: 'https://img.icons8.com/fluent/48/000000/moon-satellite.png', badge: 'https://img.icons8.com/ios-glyphs/30/000000/bed.png'}
+    ];
+    // --- Akhir Konten ---
+
+    function getCurrentTimestamp() {
+        return new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // --- Fungsi Seleksi Konten Berdasarkan Waktu ---
+    function selectContentVariation() {
+        const currentHour = new Date().getHours();
+        let timeOfDay = 'any';
+        if (currentHour >= 5 && currentHour < 12) timeOfDay = 'morning';
+        else if (currentHour >= 12 && currentHour < 18) timeOfDay = 'afternoon';
+        else if (currentHour >= 18 || currentHour < 5) timeOfDay = 'evening';
+
+        // Filter konten yang sesuai dengan waktu atau konten umum ('any')
+        const relevantVariations = contentVariations.filter(v => v.timeOfDay === timeOfDay || !v.timeOfDay);
+        if (relevantVariations.length === 0) {
+             // Fallback jika tidak ada yang cocok (seharusnya tidak terjadi dengan struktur saat ini)
+             return contentVariations[Math.floor(Math.random() * contentVariations.length)];
+        }
+        return relevantVariations[Math.floor(Math.random() * relevantVariations.length)];
+    }
+
+    // --- Fungsi Inti Notifikasi ---
+    function displayNotification() {
+        if (isPaused || currentPermission !== 'granted') return;
+
+        // --- Cek Cooldown ---
+        const now = Date.now();
+        if (now - lastNotificationTimestamp < NOTIFICATION_COOLDOWN) {
+            console.log(`Cooldown aktif (${Math.round((NOTIFICATION_COOLDOWN - (now - lastNotificationTimestamp))/1000)}s tersisa), notifikasi dilewati.`);
+            scheduleNextNotification(); // Jadwalkan lagi tanpa menampilkan
+            return;
+        }
+        // --- Akhir Cek Cooldown ---
+
+        if (inactiveOnlyCheckbox.checked && !document.hidden) {
+            console.log("Tab aktif, notifikasi dilewati sesuai pengaturan.");
+            scheduleNextNotification();
+            return;
+        }
+
+        const variation = selectContentVariation(); // Pilih konten berdasarkan waktu/acak
+        const notificationBody = typeof variation.body === 'function' ? variation.body() : variation.body; // Eksekusi fungsi jika body adalah fungsi
+
+        const options = {
+            body: notificationBody,
+            icon: variation.icon,
+            badge: variation.badge,
+            image: variation.image,
+            tag: 'smart-notify-tag-' + variation.type, // Tag berdasarkan TIPE notifikasi
+            requireInteraction: !!variation.actions,
+            actions: variation.actions || [],
+        };
+
+        try {
+            console.log(`Menampilkan notifikasi (v3 - ${variation.type}):`, variation.title);
+            const notification = new Notification(variation.title, options);
+
+            lastNotificationTimestamp = Date.now(); // Update timestamp terakhir
+            const logEntry = { title: variation.title, time: getCurrentTimestamp(), type: variation.type };
+            addNotificationToLog(logEntry); // Tambahkan ke log
+
+            lastNotificationDiv.textContent = `Notifikasi terakhir (${logEntry.type}): ${logEntry.title} (${logEntry.time})`;
+            lastNotificationDiv.style.display = 'block';
+
+            notification.onclick = (event) => {
+                console.log('Notifikasi diklik!', event);
+                window.focus();
+                notification.close();
+            };
+            notification.onerror = (err) => console.error('Error Notifikasi:', err);
+
+            if(options.actions.length > 0) {
+                 notification.onshow = () => console.warn(`Notifikasi '${variation.type}' dengan aksi ditampilkan.`);
+            }
+
+        } catch (error) {
+            console.error('Gagal membuat notifikasi:', error);
+            // Jika gagal (misal karena resource icon/image tidak valid), tetap jadwalkan berikutnya
+        }
+
+        scheduleNextNotification();
+    }
+
+    // --- Penjadwalan ---
+    function scheduleNextNotification() {
+        if (notificationTimeoutId) clearTimeout(notificationTimeoutId);
+        if (isPaused || currentPermission !== 'granted') {
+             nextNotificationInfoDiv.textContent = isPaused ? "Status: Dijeda oleh pengguna." : "Status: Menunggu izin.";
+             nextNotificationInfoDiv.style.display = 'block';
+             return;
+        }
+
+        const selectedFrequency = frequencySelect.value;
+        const settings = frequencySettings[selectedFrequency] || frequencySettings.medium;
+        const { min, max } = settings;
+        let randomDelay = min + Math.random() * (max - min);
+
+        // --- Penyesuaian Delay vs Cooldown (Alternatif: memastikan delay minimum setelah cooldown) ---
+        // const timeSinceLast = Date.now() - lastNotificationTimestamp;
+        // if (timeSinceLast < NOTIFICATION_COOLDOWN) {
+        //    // Jika waktu sejak terakhir < cooldown, pastikan delay berikutnya minimal = sisa cooldown
+        //    const requiredDelay = NOTIFICATION_COOLDOWN - timeSinceLast;
+        //    randomDelay = Math.max(randomDelay, requiredDelay); // Ambil yang lebih besar
+        //    console.log(`Penyesuaian delay karena cooldown: +${Math.round(requiredDelay/1000)}s`);
+        // }
+        // --> Logika cooldown di displayNotification lebih sederhana untuk diterapkan di sini
+
+        const delayInSeconds = Math.round(randomDelay / 1000);
+        const delayInMinutes = (randomDelay / 60000).toFixed(1);
+
+        console.log(`Notifikasi berikutnya dijadwalkan dalam ~${delayInSeconds} detik (${delayInMinutes} menit).`);
+        nextNotificationInfoDiv.textContent = `Status: Menunggu jadwal berikutnya (~${delayInMinutes} menit). Cooldown: ${NOTIFICATION_COOLDOWN/1000}s.`;
+        nextNotificationInfoDiv.style.display = 'block';
+
+        notificationTimeoutId = setTimeout(displayNotification, randomDelay);
+    }
+
+    // --- Fungsi Log ---
+    function addNotificationToLog(entry) {
+        notificationLog.unshift(entry); // Tambah ke awal array
+        if (notificationLog.length > MAX_LOG_ENTRIES) {
+            notificationLog.pop(); // Hapus yang tertua jika melebihi batas
+        }
+        renderNotificationLog();
+        logPanel.style.display = 'block'; // Tampilkan panel log
+    }
+
+    function renderNotificationLog() {
+        logList.innerHTML = ''; // Kosongkan list
+        if (notificationLog.length === 0) {
+            logList.innerHTML = '<li>Belum ada notifikasi.</li>';
+            return;
+        }
+        notificationLog.forEach(entry => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="log-time">[${entry.time}]</span> <strong>(${entry.type})</strong> ${entry.title}`;
+            logList.appendChild(li);
+        });
+    }
+
+    // --- Update UI & State ---
+    function updateUIBasedOnPermission(permission) {
+        currentPermission = permission;
+        statusDiv.className = 'status-box';
+
+        if (permission === 'granted') {
+            statusDiv.textContent = 'Izin notifikasi diberikan. Kontrol tersedia di bawah.';
+            statusDiv.classList.add('granted');
+            allowButton.style.display = 'none';
+            pauseResumeButton.style.display = 'inline-block';
+            controlsDiv.style.display = 'block';
+             logPanel.style.display = notificationLog.length > 0 ? 'block' : 'none'; // Tampilkan log jika ada isinya
+            updatePauseResumeButton();
+            if(!isPaused) scheduleNextNotification(); // Mulai jika tidak sedang dijeda
+        } else {
+            controlsDiv.style.display = 'none';
+            pauseResumeButton.style.display = 'none';
+            allowButton.style.display = 'inline-block';
+            lastNotificationDiv.style.display = 'none';
+            nextNotificationInfoDiv.style.display = 'none';
+            logPanel.style.display = 'none'; // Sembunyikan log
+
+            if (permission === 'denied') {
+                statusDiv.textContent = 'Anda memblokir izin notifikasi. Ubah di pengaturan browser.';
+                statusDiv.classList.add('denied');
+                allowButton.disabled = true;
+            } else { // default
+                statusDiv.textContent = 'Klik "Izinkan Notifikasi" untuk memulai.';
+                allowButton.disabled = false;
+            }
+            if (notificationTimeoutId) clearTimeout(notificationTimeoutId);
+            notificationTimeoutId = null;
+        }
+         renderNotificationLog(); // Update tampilan log (mungkin jadi kosong)
+    }
+
+    function updatePauseResumeButton() {
+        if (isPaused) {
+            pauseResumeButton.textContent = 'Lanjutkan Notifikasi';
+            pauseResumeButton.classList.remove('secondary');
+        } else {
+            pauseResumeButton.textContent = 'Jeda Notifikasi';
+            pauseResumeButton.classList.add('secondary');
+        }
+    }
+
+    // --- Event Listeners ---
+    allowButton.addEventListener('click', () => {
+        Notification.requestPermission()
+            .then(permission => {
+                console.log('Hasil permintaan izin:', permission);
+                updateUIBasedOnPermission(permission);
+            })
+            .catch(err => {
+                 console.error("Error meminta izin:", err);
+                 statusDiv.textContent = 'Gagal meminta izin notifikasi.';
+                 statusDiv.className = 'status-box denied';
+            });
+    });
+
+    pauseResumeButton.addEventListener('click', () => {
+        isPaused = !isPaused;
+        console.log("Status jeda:", isPaused);
+        updatePauseResumeButton();
+        if (isPaused) {
+            if (notificationTimeoutId) clearTimeout(notificationTimeoutId);
+            nextNotificationInfoDiv.textContent = "Status: Dijeda oleh pengguna.";
+        } else {
+            scheduleNextNotification(); // Lanjutkan penjadwalan
+        }
+    });
+
+    frequencySelect.addEventListener('change', scheduleNext
